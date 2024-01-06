@@ -113,3 +113,42 @@ Finally, this data can be read to perform some calculations such as getting the 
 ![Metrics](./images/sql-metrics.png)
 
 ![Graphs](./images/sql-metrics-plotly.png)
+
+### More data
+
+Using the following query, I can insert dummy data, to showcase how the graphs may look with more data points.
+```SQL 
+INSERT INTO my_table (tag_name, num_value, timestamp)
+SELECT
+    'E_test' AS tag_name, -- Change if desired
+    floor(random() * 100) AS num_value, -- Adjust the range as needed
+    generate_series(
+        '2023-12-01'::timestamp,
+        '2023-12-31'::timestamp,
+        '1 day'::interval
+    )::date AS timestamp;
+```
+
+Then these tags can be selected in the streamlit interface. **Note**: connection can last a few minutes, so you may have to reload the session to force requery tag_names.
+![Graphs with more data](./images/sql-metrics-plotly2.png)
+
+Note that plotly graphs can be zoomed in and out!
+![Select box](./images/plotly-selectbox.png)
+![plotly-zoomed-in](./images/plotly-zoomed-in.png)
+
+
+### Performance 
+Inserting a `Performance_test` tag between 2023-01-01 to 2023-12-31 at 1 minute intervals, results into `524161` new rows added to Postgresql.
+
+```SQL 
+myDataBase=# explain select * from my_table where tag_name='Performance_test';
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Seq Scan on my_table  (cost=0.00..10922.56 rows=524180 width=68)
+   Filter: ((tag_name)::text = 'Performance_test'::text)
+(2 rows)
+```
+
+Streamlit page loads are rather fast, lower than 3 seconds (worst case).
+
+This query could be improved by adding an index to the table.
